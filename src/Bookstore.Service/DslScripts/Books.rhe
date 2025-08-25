@@ -2,14 +2,141 @@ Module Bookstore
 {
    Entity Book
    {
-      ShortString Code { AutoCode; }
-      ShortString Title;
+      ShortString Code { AutoCode; Required; }
+      ShortString Title { Required; }
       Integer NumberOfPages;
       ShortString Description;
 
       ItemFilter CommonMisspelling 'book => book.Title.Contains("curiousity")';
       InvalidData CommonMisspelling 'It is not allowed to enter misspelled word "curiousity".';
 
+      ItemFilter ImportantBooks 'book => book.Title.Contains("important") && book.Title != null';
+      InvalidData ImportantBooks 'It is not allowed to delete an imporant book';
+
+      ItemFilter ForeignAuthorStartWithZChapters 'item => 
+            item.Author.Name.StartsWith("Z")
+            && item.Extension_ForeignBook.ID != null
+            && _domRepository.Bookstore.Chapter.Subquery.Where(c => c.BookID == item.ID).Count() >= 1';
+        
+      //https://localhost:7132/rest/Bookstore/Book/?filters=[{"Filter":"Bookstore.LongForeignBooks","Value":{"MinimumPages":200,"ForeignBook":true}}]
+      ComposableFilterBy LongForeignBooks '(query, repository, parameter) => 
+      {
+        var filtered = query.Where(item => item.NumberOfPages >= parameter.MinimumPages);
+        if (parameter.ForeignBook == true)
+            filtered = filtered.Where(item => item.Extension_ForeignBook.ID != null);
+            return filtered;
+      }';
+
+      Reference Author Bookstore.Person;
+      Reference Genre Bookstore.Genre;
+
       Logging;
    }
+
+   Parameter LongForeignBooks
+   {
+        Integer MinimumPages;
+        Bool ForeignBook;
+   }
+
+    Entity Person
+    {
+        ShortString Name;
+    }
+
+    Entity Chapter
+    {
+        Reference Book { Detail; }
+        LongString Heading;
+    }
+
+    Entity ChildrensBook
+    {
+        Extends Bookstore.Book;
+
+        Integer AgeFrom;
+        Integer AgeTo;
+        IntegerRange AgeFrom AgeTo; // A simple validation.
+    }
+
+    Entity ForeignBook
+    {
+        Extends Bookstore.Book;
+
+        ShortString OriginalLanguage;
+        Reference Translator Bookstore.Person;
+    }
+
+    Entity Topic
+    {
+        ShortString Name { Unique; Required; }
+    }
+
+    Entity BookTopic
+    {
+        Reference Book { Detail; }
+        Reference Topic { Required; }
+
+        UniqueMultiple 'Book Topic';
+    }
+
+    SqlQueryable BookInfo <SQL\BookInfo.sql>
+    {
+        Extends Bookstore.Book;
+        Integer NumberOfChapters;
+
+        AutodetectSqlDependencies;
+    }
+
+    //view koji daje broj knjiga odreðenog autora
+    //extenda person entity te daje broj njegovih knjiga
+    SqlQueryable BookAuthorCount
+        "
+            SELECT
+               p.ID,
+               NumberOfBooks = Count(b.ID)
+            FROM Bookstore.Person p
+            LEFT JOIN Bookstore.Book b ON b.AuthorID = p.ID
+            GROUP BY    
+                P.ID    
+        "
+    {
+        Extends Bookstore.Person;
+        Integer NumberOfBooks;
+
+        AutodetectSqlDependencies;
+    }
+
+    Browse BookGrid Bookstore.Book
+    {
+        Take Title;
+        Take Code;
+        Take 'Author.Name';
+        Take NumberOfChapters 'Extension_BookInfo.NumberOfChapters';
+    }
+
+    Hardcoded Genre
+    {
+        ShortString Label;
+        LongString Description;
+        Bool IsForKids;
+
+        Entry Horror
+        {
+            Value Label 'Horror';
+            Value Description 'Scary genre of movies that will frighten most people!';
+            Value IsForKids 0;
+        }
+
+        Entry History
+        {
+            Value Label 'History';
+            Value Description 'Genre of movies based on events from the past';
+            Value IsForKids 1;
+        }
+
+    }
+
+    
+
 }

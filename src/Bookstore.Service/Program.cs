@@ -1,4 +1,5 @@
 using Rhetos;
+
 var builder = WebApplication.CreateBuilder(args);
 
 
@@ -9,14 +10,22 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+
 builder.Services.AddRhetosHost((serviceProvider, rhetosHostBuilder) => rhetosHostBuilder
         .ConfigureRhetosAppDefaults()
         .UseBuilderLogProviderFromHost(serviceProvider)
         .ConfigureConfiguration(cfg => cfg.MapNetCoreConfiguration(builder.Configuration)))
+        .AddRestApi(o =>
+        {
+            o.BaseRoute = "rest";
+            o.GroupNameMapper = (conceptInfo, controller, oldName) => "v1";
+        })
     .AddAspNetCoreIdentityUser()
     .AddHostLogging();
 
 var app = builder.Build();
+
+app.UseRhetosRestApi();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -25,10 +34,15 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+
+
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
 app.MapControllers();
+
+if (app.Environment.IsDevelopment())
+    app.MapRhetosDashboard();
 
 app.Run();

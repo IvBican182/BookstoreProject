@@ -1,0 +1,38 @@
+Module Staff
+{
+	Entity Employee
+	{
+		ShortString VAT { AutoCode; Unique; }
+		ShortString Name;
+		Reference Education;
+
+	}
+
+	Entity Manager
+	{
+		Extends Staff.Employee;
+		ShortString BonusInfo { Required; }
+
+	}
+
+	Entity Education
+	{
+		ShortString Description;
+		Date EducationFinished;
+		
+	}
+
+	Entity Department
+    {
+        ShortString Code { AutoCode; Required; }
+        ShortString Description;
+    }
+
+	Entity EmployeeDepartment
+	{
+		Reference Employee;
+		Reference Department;
+
+		UniqueMultiple 'Employee Department';
+	}
+}
