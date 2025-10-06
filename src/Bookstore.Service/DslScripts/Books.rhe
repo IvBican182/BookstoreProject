@@ -10,8 +10,8 @@ Module Bookstore
       ItemFilter CommonMisspelling 'book => book.Title.Contains("curiousity")';
       InvalidData CommonMisspelling 'It is not allowed to enter misspelled word "curiousity".';
 
-      ItemFilter ImportantBooks 'book => book.Title.Contains("important") && book.Title != null';
-      InvalidData ImportantBooks 'It is not allowed to delete an imporant book';
+      //ItemFilter ImportantBooks 'book => book.Title.Contains("important") && book.Title != null';
+      //InvalidData ImportantBooks 'It is not allowed to delete an imporant book';
 
       ItemFilter ForeignAuthorStartWithZChapters 'item => 
             item.Author.Name.StartsWith("Z")
@@ -27,16 +27,47 @@ Module Bookstore
             return filtered;
       }';
 
+      FilterBy ComplexSearch '(repository, parameter) =>
+      {
+        var query = repository.Bookstore.Book.Query(item => item.NumberOfPages >= parameter.MinimumPages);
+
+        if(parameter.ForeignBooksOnly == true)
+            query = query.Where(item => item.Extension_ForeignBook.ID != null);
+            Book[] books = query.ToSimple().ToArray();
+
+        return books;
+            
+
+           
+      }';
+
       Reference Author Bookstore.Person;
       Reference Genre Bookstore.Genre;
 
       Logging;
    }
 
+   Parameter ComplexSearch
+   {
+      Integer MinimumPages;
+      Bool ForeignBooksOnly;
+      
+   }
+
    Parameter LongForeignBooks
    {
         Integer MinimumPages;
         Bool ForeignBook;
+   }
+
+   Entity Disposal
+   {
+       Reference Book { required; }
+       LongString Explanation { Required; }
+       DateTime EffectiveSince { CreationTime; }
+
+       ItemFilter ImportantBookExplanation 'item => item.Explanation.Length < 50 && item.Book.Title.Contains("important")';
+       InvalidData ImportantBookExplanation 'When disposing a book, the explanation must be atleast 50 characters long';
    }
 
     Entity Person

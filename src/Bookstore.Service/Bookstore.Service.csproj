@@ -23,4 +23,10 @@
     <Folder Include="DslScripts\SQL\" />
   </ItemGroup>
 
+  <ItemGroup>
+	  <None Update="Localization\hr.po">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+  </ItemGroup>
+
 </Project>
